@@ -12,6 +12,10 @@ Run the following command to start the build:
 
     ./kas-container build kas-qemu.yml
 
+Alternative: build the development image for ROS 2:
+
+    ./kas-container build kas-qemu.yml:kas/ros2-devel.yml
+
 ## Running in QEMU
 
 Start the generated image in QEMU using this command:
