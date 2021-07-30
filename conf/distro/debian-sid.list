@@ -7,5 +7,5 @@
 # COPYING.MIT file in the top-level directory.
 #
 
-deb	[check-valid-until=no] http://snapshot.debian.org/archive/debian/20200801T030228Z sid main contrib non-free
-deb-src	[check-valid-until=no] http://snapshot.debian.org/archive/debian/20200801T030228Z sid main contrib non-free
+deb	[check-valid-until=no trusted=yes] http://snapshot.debian.org/archive/debian/20210727T023937Z sid main contrib non-free
+deb-src	[check-valid-until=no trusted=yes] http://snapshot.debian.org/archive/debian/20210727T023937Z sid main contrib non-free
