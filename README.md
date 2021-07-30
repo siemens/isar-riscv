@@ -12,10 +12,6 @@ Run the following command to start the build:
 
     ./kas-container build kas-qemu.yml
 
-Alternative: build the development image for ROS 2:
-
-    ./kas-container build kas-qemu.yml:kas/ros2-devel.yml
-
 ## Running in QEMU
 
 Start the generated image in QEMU using this command:
@@ -28,3 +24,17 @@ Start the generated image in QEMU using this command:
         -append "console=ttyS0 root=/dev/vda rw" -nographic -snapshot
 
 User name and password to log in are both "root".
+
+## Building ROS2
+
+Use the development image for ROS2:
+
+    ./kas-container build kas-qemu.yml:kas/ros2-devel.yml
+
+In QEMU build ros-foxy-ros-base, build and run the demo:
+```
+cd scripts
+./ros_base_build.sh
+./demo_build.sh
+./demo_run.sh
+```
