@@ -51,3 +51,5 @@ IMAGE_PREINSTALL += "apt-utils \
 
 # Extra space for rootfs in MB
 ROOTFS_EXTRA = "8192"
+
+IMAGE_INSTALL += "ros-foxy-build"
