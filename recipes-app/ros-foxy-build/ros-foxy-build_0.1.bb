@@ -13,6 +13,7 @@ SRC_URI = "file://demo_build.sh \
            file://demo.repos \
            file://demo_run.sh \
            file://ros_base_build.sh \
+           file://ros_base_debianize.sh \
            file://ros_base.repos"
 
 inherit dpkg-raw
