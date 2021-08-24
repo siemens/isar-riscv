@@ -20,9 +20,10 @@ inherit dpkg-raw
 do_install() {
 	install -v -d ${D}/root
 	install -v -d ${D}/root/scripts
-	install -v -m 0755 ${WORKDIR}/demo_build.sh     ${D}/root/scripts
-	install -v -m 0644 ${WORKDIR}/demo.repos        ${D}/root/scripts
-	install -v -m 0755 ${WORKDIR}/demo_run.sh       ${D}/root/scripts
-	install -v -m 0755 ${WORKDIR}/ros_base_build.sh ${D}/root/scripts
-	install -v -m 0644 ${WORKDIR}/ros_base.repos    ${D}/root/scripts
+	install -v -m 0755 ${WORKDIR}/demo_build.sh         ${D}/root/scripts
+	install -v -m 0644 ${WORKDIR}/demo.repos            ${D}/root/scripts
+	install -v -m 0755 ${WORKDIR}/demo_run.sh           ${D}/root/scripts
+	install -v -m 0755 ${WORKDIR}/ros_base_build.sh     ${D}/root/scripts
+	install -v -m 0755 ${WORKDIR}/ros_base_debianize.sh ${D}/root/scripts
+	install -v -m 0644 ${WORKDIR}/ros_base.repos        ${D}/root/scripts
 }
