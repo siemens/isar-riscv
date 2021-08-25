@@ -30,4 +30,4 @@ WORKSPACE=$SCRIPTPATH/../demo_ws
 mkdir -p $WORKSPACE/src
 vcs import $WORKSPACE/src < $SCRIPTPATH/demo.repos
 cd $WORKSPACE
-colcon build --continue-on-error
+colcon build --continue-on-error --merge-install --install-base /opt/ros/foxy/
