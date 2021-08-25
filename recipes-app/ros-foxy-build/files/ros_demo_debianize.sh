@@ -33,6 +33,7 @@ DEB_PATH=/root/${DEB_PACKAGE_NAME}_${DEB_PACKAGE_VERSION}_${DEB_PACKAGE_ARCH}/
 
 
 mkdir -p ${DEB_PATH}/DEBIAN
+mkdir -p ${DEB_PATH}/root/demo_ws
 
 CONTROL_FILE=$DEB_PATH/DEBIAN/control
 echo Package: $DEB_PACKAGE_NAME > $CONTROL_FILE 
@@ -42,15 +43,12 @@ echo "Maintainer: xxx <xxx@siemens.com>" >> $CONTROL_FILE
 echo Section: misc >> $CONTROL_FILE
 echo Priority: optional >> $CONTROL_FILE
 echo Description: The base for ROS2 compiled for RISC-V >> $CONTROL_FILE
+echo Depends: ros-foxy-base-bin >> $CONTROL_FILE
 
-
-# Purge all ros-foxy-base files
-dpkg -P ros-foxy-base-bin
 
 # Move the ros-foxy-demo the path of the package to build
-mv /opt $DEB_PATH
+mv /root/demo_ws/install $DEB_PATH/root/demo_ws/
 dpkg-deb --build $DEB_PATH
 
 # Install the package
-dpkg -i ros-foxy-base-bin_*_${DEB_PACKAGE_ARCH}.deb
 dpkg -i ${DEB_PACKAGE_NAME}_${DEB_PACKAGE_VERSION}_${DEB_PACKAGE_ARCH}.deb

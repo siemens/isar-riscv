@@ -42,6 +42,7 @@ echo "Maintainer: xxx <xxx@siemens.com>" >> $CONTROL_FILE
 echo Section: misc >> $CONTROL_FILE
 echo Priority: optional >> $CONTROL_FILE
 echo Description: The base for ROS2 compiled for RISC-V >> $CONTROL_FILE
+echo Depends: python3-setuptools, python3-lark, python3-yaml, libpython3.9, libatomic1 >> $CONTROL_FILE
 
 # Move the ros-foxy-base in the path of the package to build
 mv /opt $DEB_PATH
