@@ -43,5 +43,9 @@ echo Section: misc >> $CONTROL_FILE
 echo Priority: optional >> $CONTROL_FILE
 echo Description: The base for ROS2 compiled for RISC-V >> $CONTROL_FILE
 
+# Move the ros-foxy-base in the path of the package to build
 mv /opt $DEB_PATH
 dpkg-deb --build $DEB_PATH
+
+# Install the package
+dpkg -i ${DEB_PACKAGE_NAME}_${DEB_PACKAGE_VERSION}_${DEB_PACKAGE_ARCH}.deb
