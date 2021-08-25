@@ -29,7 +29,7 @@ SCRIPTPATH=$( cd $(dirname $0) ; pwd -P )
 DEB_PACKAGE_VERSION=1.0-1
 DEB_PACKAGE_NAME=ros-foxy-base-bin
 DEB_PACKAGE_ARCH=riscv64
-DEB_PATH=/root/$DEB_PACKAGE_NAME-$DEB_PACKAGE_VERSION-$DEB_PACKAGE_ARCH/
+DEB_PATH=/root/${DEB_PACKAGE_NAME}_${DEB_PACKAGE_VERSION}_${DEB_PACKAGE_ARCH}/
 
 
 mkdir -p ${DEB_PATH}/DEBIAN
@@ -38,6 +38,9 @@ CONTROL_FILE=$DEB_PATH/DEBIAN/control
 echo Package: $DEB_PACKAGE_NAME > $CONTROL_FILE 
 echo Version: $DEB_PACKAGE_VERSION >> $CONTROL_FILE
 echo Architecture: $DEB_PACKAGE_ARCH >> $CONTROL_FILE
+echo "Maintainer: xxx <xxx@siemens.com>" >> $CONTROL_FILE
+echo Section: misc >> $CONTROL_FILE
+echo Priority: optional >> $CONTROL_FILE
 echo Description: The base for ROS2 compiled for RISC-V >> $CONTROL_FILE
 
 mv /opt $DEB_PATH
