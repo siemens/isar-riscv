@@ -1,8 +1,8 @@
 repositories:
   demos:
     type: git
-    url: https://github.com/ros2/demos.git
-    version: foxy
+    url: https://github.com/guillaume-pais-siemens/demos.git
+    version: foxy-fix-latomic-for-riscv
   example_interfaces:
     type: git
     url: https://github.com/ros2/example_interfaces.git
