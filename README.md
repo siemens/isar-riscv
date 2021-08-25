@@ -35,6 +35,11 @@ In QEMU build ros-foxy-ros-base, build and run the demo:
 ```
 cd scripts
 ./ros_base_build.sh
+./ros_base_debianize.sh
 ./demo_build.sh
+./demo_debianize.sh
 ./demo_run.sh
 ```
+In the process 2 debian packages are built ros-foxy-base-bin_1.0-1_riscv64.deb and ros-foxy-demo-bin_1.0-1_riscv64.deb. These debian packages shall be saved on a server and later on copied in the folder ``` recipes-app/ros-foxy-base-bin/files/ ```. After these steps are done the minimal ROS2 image can be created:
+
+    ./kas-container build kas-qemu.yml:kas/ros2.yml
