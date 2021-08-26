@@ -352,7 +352,7 @@
     version: release/foxy/message_filters/3.2.5-1
 - git:
     local-name: mimick_vendor
-    uri: git@code.siemens.com:mechatronic/funded-projects/selene/mimick_vendor.git
+    uri: https://github.com/guillaume-pais-siemens/mimick_vendor.git
     version: riscv
 - git:
     local-name: orocos_kdl
@@ -481,7 +481,7 @@
 - git:
     local-name: robot_state_publisher
     uri: https://github.com/ros2-gbp/robot_state_publisher-release.git
-    version: release/foxy/robot_state_publisher/2.4.2-1
+    version: release/foxy/robot_state_publisher/2.4.5-1
 - git:
     local-name: ros2_tracing/tracetools
     uri: https://github.com/ros2-gbp/ros2_tracing-release.git
