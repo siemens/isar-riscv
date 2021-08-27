@@ -12,6 +12,7 @@ DESCRIPTION = "Scripts to build ROS2 with demo"
 SRC_URI = "file://demo_build.sh \
            file://demo.repos \
            file://demo_run.sh \
+           file://demo_debianize.sh \
            file://ros_base_build.sh \
            file://ros_base_debianize.sh \
            file://ros_base.repos"

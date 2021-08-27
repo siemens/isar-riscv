@@ -42,6 +42,7 @@ IMAGE_PREINSTALL += "apt-utils \
                      python3-pip \
                      python3-pytest-cov \
                      python3-setuptools \
+                     python3-yaml \
                      samba \
                      socat \
                      systemd \

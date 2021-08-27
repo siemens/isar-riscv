@@ -51,4 +51,4 @@ mv /root/demo_ws/install $DEB_PATH/root/demo_ws/
 dpkg-deb --build $DEB_PATH
 
 # Install the package
-dpkg -i ${DEB_PACKAGE_NAME}_${DEB_PACKAGE_VERSION}_${DEB_PACKAGE_ARCH}.deb
+dpkg -i /root/${DEB_PACKAGE_NAME}_${DEB_PACKAGE_VERSION}_${DEB_PACKAGE_ARCH}.deb
