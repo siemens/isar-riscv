@@ -65,3 +65,23 @@ Copy the ROS2 debian packages (```ros-foxy-base-bin_1.0-1_riscv64.deb``` and ```
         -kernel build/tmp/deploy/images/qemuriscv64/isar-image-${IMAGE_NAME}-debian-sid-ports-qemuriscv64-vmlinux \
         -initrd build/tmp/deploy/images/qemuriscv64/isar-image-${IMAGE_NAME}-debian-sid-ports-qemuriscv64-initrd.img \
         -append "console=ttyS0 root=/dev/vda rw" -nographic -snapshot
+
+### Run the demos
+Try the demos:
+
+    source /root/demo_ws/install/setup.bash
+    ros2 launch composition         composition_demo.launch.py
+    <Ctrl-C>
+    ros2 launch demo_nodes_cpp      add_two_ints.launch.py
+    <Ctrl-C>
+    ros2 launch demo_nodes_cpp      add_two_ints_async.launch.py
+    <Ctrl-C>
+    ros2 launch demo_nodes_cpp      talker_listener.launch.py
+    <Ctrl-C>
+    ros2 launch demo_nodes_cpp      talker_listener_best_effort.launch.py
+    <Ctrl-C>
+    ros2 launch dummy_robot_bringup dummy_robot_bringup.launch.py
+    <Ctrl-C>
+    ros2 launch lifecycle           lifecycle_demo.launch.py
+    <Ctrl-C>
+    ...
