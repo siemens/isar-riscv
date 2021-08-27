@@ -43,7 +43,7 @@ ROS2 does not come with RISC-V debian packages. Therefore, it is necessary to re
         -initrd build/tmp/deploy/images/qemuriscv64/isar-image-${IMAGE_NAME}-debian-sid-ports-qemuriscv64-initrd.img \
         -append "console=ttyS0 root=/dev/vda rw" -nographic
 
-In QEMU build ros-foxy-ros-base, build and run the demo:
+In QEMU build ros-foxy-ros-base, build and run the demo (requires more than a tag):
 ```
 cd scripts
 ./ros_base_build.sh
@@ -55,7 +55,7 @@ cd scripts
 In the process, 2 debian packages are built ```ros-foxy-base-bin_1.0-1_riscv64.deb``` and ```ros-foxy-demo-bin_1.0-1_riscv64.deb```. These debian packages have to be exported from QEMU (e.g. push on a git server).
 
 ### Build and start ROS2 image
-Copy the ROS2 debian packages (```ros-foxy-base-bin_1.0-1_riscv64.deb``` and ```ros-foxy-demo-bin_1.0-1_riscv64.deb```) in the folder ``` recipes-app/ros-foxy-base-bin/files/ ```. Then build the minimal ROS2 image:
+Copy the ROS2 debian packages (```ros-foxy-base-bin_1.0-1_riscv64.deb``` and ```ros-foxy-demo-bin_1.0-1_riscv64.deb```) in the folder ``` recipes-app/ros-foxy-base-bin/files/ ```. Then build and start the minimal ROS2 image:
 
     ./kas-container build kas-qemu.yml:kas/ros2.yml
     export IMAGE_NAME=ros2
