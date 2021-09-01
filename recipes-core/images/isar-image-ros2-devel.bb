@@ -19,7 +19,7 @@ IMAGE_PREINSTALL += "apt-utils \
                      ebtables \
                      ethtool \
                      git \
-                     git-lsf \
+                     git-lfs \
                      gnupg2 \
                      ifupdown \
                      iptables \
