@@ -8,5 +8,5 @@
 # COPYING.MIT file in the top-level directory.
 #
 
-deb	[trusted=yes] http://snapshot.debian.org/archive/debian-ports/20200801T030228Z sid main
-deb-src	[trusted=yes] http://snapshot.debian.org/archive/debian-ports/20200801T030228Z sid main
+deb	[check-valid-until=no trusted=yes] https://snapshot.debian.org/archive/debian-ports/20210727T075314Z sid main
+deb-src	[check-valid-until=no trusted=yes] https://snapshot.debian.org/archive/debian-ports/20210727T075314Z sid main

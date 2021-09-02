@@ -1,0 +1,17 @@
+repositories:
+  demos:
+    type: git
+    url: https://github.com/guillaume-pais-siemens/demos.git
+    version: foxy-fix-latomic-for-riscv
+  example_interfaces:
+    type: git
+    url: https://github.com/ros2/example_interfaces.git
+    version: foxy
+  realtime_support:
+    type: git
+    url: https://github.com/ros2/realtime_support.git
+    version: foxy
+  tlsf:
+    type: git
+    url: https://github.com/ros2/tlsf.git
+    version: foxy
