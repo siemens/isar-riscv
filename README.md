@@ -52,7 +52,10 @@ cd scripts
 ./demo_debianize.sh
 ./demo_run.sh
 ```
-In the process, 2 debian packages are built ```ros-foxy-base-bin_1.0-1_riscv64.deb``` and ```ros-foxy-demo-bin_1.0-1_riscv64.deb```. These debian packages have to be exported from QEMU (e.g. push on a git server).
+In the process, 2 debian packages are built ```ros-foxy-base-bin_1.0-1_riscv64.deb``` and ```ros-foxy-demo-bin_1.0-1_riscv64.deb```. These debian packages have to be exported from QEMU, e.g. by copying them to the host from QEMU via SSH:
+```
+scp ~/*.deb <user>@10.0.2.2:
+```
 
 ### Build and start ROS2 image
 Copy the ROS2 debian packages (```ros-foxy-base-bin_1.0-1_riscv64.deb``` and ```ros-foxy-demo-bin_1.0-1_riscv64.deb```) in the folder ``` recipes-app/ros-foxy-base-bin/files/ ```. Then build and start the minimal ROS2 image:
