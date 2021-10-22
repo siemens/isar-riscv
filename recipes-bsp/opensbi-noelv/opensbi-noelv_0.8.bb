@@ -10,12 +10,13 @@
 inherit dpkg
 
 SRC_URI = " \
-    https://github.com/riscv/opensbi/archive/v0.5.tar.gz \
-    file://rules"
+    https://github.com/riscv/opensbi/archive/v0.8.tar.gz \
+    file://0001-lib-utils-serial-Add-support-for-Gaisler-APBUART.patch \
+    file://rules "
 
-SRC_URI[sha256sum] = "bc82f1e63663cafb7976b324d8a01263510cfd816063dc89e0ccffb9763fb1dd"
+SRC_URI[sha256sum] = "17e048ac765e92e15f7436b604452614cf88dc2bcbbaab18cdc024f3fdd4c575"
 
-S = "${WORKDIR}/opensbi-0.5"
+S = "${WORKDIR}/opensbi-0.8"
 
 DEBIAN_BUILD_DEPENDS ?= "device-tree-compiler"
 DEBIAN_DEPENDS ?= "linux"
@@ -25,20 +26,22 @@ do_prepare_build[depends] += "linux-noelv:do_dpkg_build"
 do_prepare_build() {
     # Copy Linux kernel binary so it can be integrated into OpenSBI binary as payload during OpenSBI build.
     # FIXME: Is there a more elegant way to do this than copying the Linux binary?
-    cp "${TMPDIR}/work/debian-sid-ports-riscv64/linux-noelv/5.4.23-r0/linux-5.4.23/build-full/vmlinux" "${S}/"
+    cp "${TMPDIR}/work/debian-sid-ports-riscv64/linux-noelv/5.10.25-r0/linux-5.10.25/build-full/arch/riscv/boot/Image" "${S}/"    
 
     deb_debianize
 }
 
 do_deploy_deb[dirs] += "${DEPLOY_DIR_IMAGE}"
 do_deploy_deb_append() {
-    cp -f ${S}/build/platform/gaisler/noelv/firmware/fw_payload.elf "${DEPLOY_DIR_IMAGE}/"
-    cp -f ${S}/build/platform/gaisler/noelv/firmware/fw_payload.bin "${DEPLOY_DIR_IMAGE}/"
+    cp -f ${S}/build/platform/generic/firmware/fw_payload.elf "${DEPLOY_DIR_IMAGE}/"
+    cp -f ${S}/build/platform/generic/firmware/fw_payload.bin "${DEPLOY_DIR_IMAGE}/"
 }
 
-dpkg_runbuild_prepend() {
-    export PLATFORM="gaisler/noelv"
-    export FW_PAYLOAD_PATH="vmlinux"
+dpkg_runbuild_prepend() {    
+    export PLATFORM="generic"
+    export FW_PAYLOAD_PATH="Image"
+    export FW_TEXT_START=0x0
+    export PLATFORM_RISCV_ABI="lp64d"
 }
 
 
