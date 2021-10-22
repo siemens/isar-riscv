@@ -1,0 +1,152 @@
+From d8becda10ecb8ddf9a26ad546bc25c7343a50f40 Mon Sep 17 00:00:00 2001
+From: Daniel Cederman <cederman@gaisler.com>
+Date: Sat, 1 May 2021 11:37:11 +0200
+Subject: [PATCH 2/6] serial: apbuart: Remove SPARC dependency
+
+The following changes allow the driver to be used with other architectures
+than SPARC. It has been tested on the NOEL-V RISC-V processor.
+
+Use platform_get_irq() instead of accessing archdata.
+Use devm_ioremap_resource() instead of of_ioremap().
+Use devm_clk_get() to get UART clock frequency if "freq" not specified.
+Add .compatible string for matching.
+
+Signed-off-by: Daniel Cederman <cederman@gaisler.com>
+---
+ drivers/tty/serial/Kconfig   |  2 +-
+ drivers/tty/serial/apbuart.c | 50 ++++++++++++++++++++++++++----------
+ drivers/tty/serial/apbuart.h |  5 ----
+ 3 files changed, 37 insertions(+), 20 deletions(-)
+
+diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
+index 682f9171c82c..f4cef3cc27af 100644
+--- a/drivers/tty/serial/Kconfig
++++ b/drivers/tty/serial/Kconfig
+@@ -1119,7 +1119,7 @@ config SERIAL_BCM63XX_CONSOLE
+ 
+ config SERIAL_GRLIB_GAISLER_APBUART
+ 	tristate "GRLIB APBUART serial support"
+-	depends on OF && SPARC
++	depends on OF
+ 	select SERIAL_CORE
+ 	help
+ 	Add support for the GRLIB APBUART serial port.
+diff --git a/drivers/tty/serial/apbuart.c b/drivers/tty/serial/apbuart.c
+index c98d90e12d77..1aa7d2cd8bd2 100644
+--- a/drivers/tty/serial/apbuart.c
++++ b/drivers/tty/serial/apbuart.c
+@@ -28,6 +28,7 @@
+ #include <linux/platform_device.h>
+ #include <linux/io.h>
+ #include <linux/serial_core.h>
++#include <linux/clk.h>
+ #include <asm/irq.h>
+ 
+ #include "apbuart.h"
+@@ -546,37 +547,56 @@ static int apbuart_probe(struct platform_device *op)
+ {
+ 	struct uart_port *port = NULL;
+ 	const int *ampopts;
+-	const u32 *freq_hz;
+-	const struct amba_prom_registers *regs;
+-	unsigned long addr;
++	struct clk *clk;
++	u32 freq_hz = 0;
++	struct resource *mem;
++	void __iomem *base;
+ 	int line;
++	int irq;
+ 	struct device_node *np = op->dev.of_node;
+ 
+ 	ampopts = of_get_property(np, "ampopts", NULL);
+ 	if (ampopts && (*ampopts == 0))
+ 		return -ENODEV; /* Ignore if used by another OS instance */
+-	regs = of_get_property(np, "reg", NULL);
+-	/* Frequency of APB Bus is frequency of UART */
+-	freq_hz = of_get_property(np, "freq", NULL);
+ 
+-	if (!regs || !freq_hz || (*freq_hz == 0))
+-		return -ENODEV;
++	irq = platform_get_irq(op, 0);
++	if (irq < 0)
++		return -EPROBE_DEFER;
++
++	mem = platform_get_resource(op, IORESOURCE_MEM, 0);
++	base = devm_ioremap_resource(&op->dev, mem);
++	if (IS_ERR(base)) {
++		dev_err(&op->dev, "could not acquire device memory\n");
++		return PTR_ERR(base);
++	}
+ 
+-	addr = regs->phys_addr;
++	of_property_read_u32(np, "freq", &freq_hz);
++
++	if (!freq_hz) {
++		clk = devm_clk_get(&op->dev, NULL);
++		if (IS_ERR(clk)) {
++			dev_err(&op->dev, "unable to find controller clock\n");
++			return PTR_ERR(clk);
++		}
++		freq_hz = clk_get_rate(clk);
++	}
++
++	if (!freq_hz)
++		return -ENODEV;
+ 
+ 	line = grlib_apbuart_port_nr++;
+ 
+ 	port = &grlib_apbuart_ports[line];
+ 
+-	port->mapbase = addr;
+-	port->membase = ioremap(addr, sizeof(struct grlib_apbuart_regs_map));
+-	port->irq = op->archdata.irqs[0];
++	port->mapbase = mem->start;
++	port->membase = base;
++	port->irq = irq;
+ 	port->iotype = UPIO_MEM;
+ 	port->ops = &grlib_apbuart_ops;
+ 	port->has_sysrq = IS_ENABLED(CONFIG_SERIAL_GRLIB_GAISLER_APBUART_CONSOLE);
+ 	port->flags = UPF_BOOT_AUTOCONF;
+ 	port->line = line;
+-	port->uartclk = *freq_hz;
++	port->uartclk = freq_hz;
+ 	port->fifosize = apbuart_scan_fifo_size((struct uart_port *) port, line);
+ 	port->dev = &op->dev;
+ 
+@@ -596,6 +616,9 @@ static const struct of_device_id apbuart_match[] = {
+ 	{
+ 	 .name = "01_00c",
+ 	 },
++	{
++	 .compatible = "gaisler,apbuart",
++	 },
+ 	{},
+ };
+ MODULE_DEVICE_TABLE(of, apbuart_match);
+@@ -615,7 +638,6 @@ static int __init grlib_apbuart_init(void)
+ 	printk(KERN_INFO "Serial: GRLIB APBUART driver\n");
+ 
+ 	ret = uart_register_driver(&grlib_apbuart_driver);
+-
+ 	if (ret) {
+ 		printk(KERN_ERR "%s: uart_register_driver failed (%i)\n",
+ 		       __FILE__, ret);
+diff --git a/drivers/tty/serial/apbuart.h b/drivers/tty/serial/apbuart.h
+index 7fac816994c6..a53556cb1b2d 100644
+--- a/drivers/tty/serial/apbuart.h
++++ b/drivers/tty/serial/apbuart.h
+@@ -13,11 +13,6 @@ struct grlib_apbuart_regs_map {
+ 	u32 scaler;
+ };
+ 
+-struct amba_prom_registers {
+-	unsigned int phys_addr;
+-	unsigned int reg_size;
+-};
+-
+ /*
+  *  The following defines the bits in the APBUART Status Registers.
+  */
+-- 
+2.25.1
+

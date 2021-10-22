@@ -1,0 +1,112 @@
+From a276b4dab5bb4429ecdbb42c9be2df387da33a28 Mon Sep 17 00:00:00 2001
+From: Andreas Larsson <andreas@gaisler.com>
+Date: Wed, 20 Sep 2017 14:34:30 +0200
+Subject: [PATCH 5/6] greth: Do not reset GRETH when EDCL is active
+
+"Active" is defined as the EDCL available, EDCL not disabled and kernel
+module parameter greth_edcl is not set to 0.
+
+Signed-off-by: Andreas Larsson <andreas@gaisler.com>
+---
+ drivers/net/ethernet/aeroflex/greth.c | 43 ++++++++++++++++-----------
+ drivers/net/ethernet/aeroflex/greth.h |  4 +++
+ 2 files changed, 30 insertions(+), 17 deletions(-)
+
+diff --git a/drivers/net/ethernet/aeroflex/greth.c b/drivers/net/ethernet/aeroflex/greth.c
+index 1b819cc32401..3267f24ea423 100644
+--- a/drivers/net/ethernet/aeroflex/greth.c
++++ b/drivers/net/ethernet/aeroflex/greth.c
+@@ -1317,7 +1317,7 @@ static int greth_mdio_init(struct greth_private *greth)
+ 	phy_start(ndev->phydev);
+ 
+ 	/* If Ethernet debug link is used make autoneg happen right away */
+-	if (greth->edcl && greth_edcl == 1) {
++	if (greth->edcl) {
+ 		phy_start_aneg(ndev->phydev);
+ 		timeout = jiffies + 6*HZ;
+ 		while (!phy_aneg_done(ndev->phydev) &&
+@@ -1378,20 +1378,27 @@ static int greth_of_probe(struct platform_device *ofdev)
+ 	dev_set_drvdata(greth->dev, dev);
+ 	SET_NETDEV_DEV(dev, greth->dev);
+ 
+-	if (netif_msg_probe(greth))
+-		dev_dbg(greth->dev, "resetting controller.\n");
+-
+-	/* Reset the controller. */
+-	GRETH_REGSAVE(regs->control, GRETH_RESET);
++	/* Check if we have EDCL that is not disabled */
++	tmp = GRETH_REGLOAD(regs->control);
++	greth->have_edcl = !!(tmp & GRETH_CTRL_EA);
++	greth->edcl = greth->have_edcl && !(tmp & GRETH_CTRL_ED) && greth_edcl;
+ 
+-	/* Wait for MAC to reset itself */
+-	timeout = jiffies + HZ/100;
+-	while (GRETH_REGLOAD(regs->control) & GRETH_RESET) {
+-		if (time_after(jiffies, timeout)) {
+-			err = -EIO;
+-			if (netif_msg_probe(greth))
+-				dev_err(greth->dev, "timeout when waiting for reset.\n");
+-			goto error1;
++	if (!greth->edcl) {
++		if (netif_msg_probe(greth))
++			dev_dbg(greth->dev, "resetting controller.\n");
++
++		/* Reset the controller. */
++		GRETH_REGSAVE(regs->control, GRETH_RESET);
++
++		/* Wait for MAC to reset itself */
++		timeout = jiffies + HZ/100;
++		while (GRETH_REGLOAD(regs->control) & GRETH_RESET) {
++			if (time_after(jiffies, timeout)) {
++				err = -EIO;
++				if (netif_msg_probe(greth))
++					dev_err(greth->dev, "timeout when waiting for reset.\n");
++				goto error1;
++			}
+ 		}
+ 	}
+ 
+@@ -1405,13 +1412,15 @@ static int greth_of_probe(struct platform_device *ofdev)
+ 	/* Check for multicast capability */
+ 	greth->multicast = (tmp >> 25) & 1;
+ 
+-	greth->edcl = (tmp >> 31) & 1;
+-
+ 	/* If we have EDCL we disable the EDCL speed-duplex FSM so
+ 	 * it doesn't interfere with the software */
+-	if (greth->edcl != 0)
++	if (greth->have_edcl)
+ 		GRETH_REGORIN(regs->control, GRETH_CTRL_DISDUPLEX);
+ 
++	/* Disable EDCL if it should not be used */
++	if (greth->have_edcl && !greth->edcl)
++		GRETH_REGORIN(regs->control, GRETH_CTRL_ED);
++
+ 	/* Check if MAC can handle MDIO interrupts */
+ 	greth->mdio_int_en = (tmp >> 26) & 1;
+ 
+diff --git a/drivers/net/ethernet/aeroflex/greth.h b/drivers/net/ethernet/aeroflex/greth.h
+index a1e04c9e932e..589dee5647db 100644
+--- a/drivers/net/ethernet/aeroflex/greth.h
++++ b/drivers/net/ethernet/aeroflex/greth.h
+@@ -16,6 +16,9 @@
+ #define GRETH_CTRL_PSTATIEN   0x400
+ #define GRETH_CTRL_MCEN       0x800
+ #define GRETH_CTRL_DISDUPLEX  0x1000
++#define GRETH_CTRL_ED         0x4000
++#define GRETH_CTRL_EA         0x80000000
++
+ #define GRETH_STATUS_PHYSTAT  0x100
+ 
+ #define GRETH_BD_EN 0x800
+@@ -135,6 +138,7 @@ struct greth_private {
+ 	u8 multicast;
+ 	u8 gbit_mac;
+ 	u8 mdio_int_en;
++	u8 have_edcl;
+ 	u8 edcl;
+ };
+ 
+-- 
+2.25.1
+
