@@ -61,7 +61,7 @@ scp ~/*.deb <user>@10.0.2.2:
 Copy the ROS2 debian packages (```ros-foxy-base-bin_1.0-1_riscv64.deb``` and ```ros-foxy-demo-bin_1.0-1_riscv64.deb```) in the folder ``` recipes-app/ros-foxy-base-bin/files/ ```. Then build and start the minimal ROS2 image:
 
     ./kas-container build kas-qemu.yml:kas/ros2.yml
-    export IMAGE_NAME=ros2
+    export IMAGE_NAME=base
     qemu-system-riscv64 -m 1G -M virt -cpu rv64 \
         -drive file=build/tmp/deploy/images/qemuriscv64/isar-image-${IMAGE_NAME}-debian-sid-ports-qemuriscv64.ext4.img,if=none,format=raw,id=hd0 \
         -device virtio-blk-device,drive=hd0 -device loader,file=build/tmp/deploy/images/qemuriscv64/fw_jump.elf,addr=0x80200000 \
