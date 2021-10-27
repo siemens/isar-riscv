@@ -1,0 +1,70 @@
+From b153e460baf6cd7c31803be4af347730665d7884 Mon Sep 17 00:00:00 2001
+From: Daniel Cederman <cederman@gaisler.com>
+Date: Sat, 1 May 2021 12:09:20 +0200
+Subject: [PATCH 3/6] serial: apbuart: Get index of serial line from DT aliases
+
+If no alias is available it will use the first available index as before.
+
+Signed-off-by: Daniel Cederman <cederman@gaisler.com>
+---
+ drivers/tty/serial/apbuart.c | 23 +++++++++++++++++------
+ 1 file changed, 17 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/tty/serial/apbuart.c b/drivers/tty/serial/apbuart.c
+index 1aa7d2cd8bd2..a813008c1e7d 100644
+--- a/drivers/tty/serial/apbuart.c
++++ b/drivers/tty/serial/apbuart.c
+@@ -340,7 +340,7 @@ static const struct uart_ops grlib_apbuart_ops = {
+ };
+ 
+ static struct uart_port grlib_apbuart_ports[UART_NR];
+-static int grlib_apbuart_port_nr;
++static DECLARE_BITMAP(apbuart_ports_in_use, UART_NR);
+ 
+ static int apbuart_scan_fifo_size(struct uart_port *port, int portnumber)
+ {
+@@ -485,7 +485,7 @@ static int __init apbuart_console_setup(struct console *co, char *options)
+ 	 * if so, search for the first available port that does have
+ 	 * console support.
+ 	 */
+-	if (co->index >= grlib_apbuart_port_nr)
++	if (co->index >= UART_NR)
+ 		co->index = 0;
+ 
+ 	port = &grlib_apbuart_ports[co->index];
+@@ -584,7 +584,15 @@ static int apbuart_probe(struct platform_device *op)
+ 	if (!freq_hz)
+ 		return -ENODEV;
+ 
+-	line = grlib_apbuart_port_nr++;
++	line = of_alias_get_id(np, "serial");
++	if (line < 0)
++		line = find_first_zero_bit(apbuart_ports_in_use, UART_NR);
++
++	if (line >= UART_NR)
++		return -ENODEV;
++
++	if (test_and_set_bit(line, apbuart_ports_in_use))
++		return -EBUSY;
+ 
+ 	port = &grlib_apbuart_ports[line];
+ 
+@@ -660,9 +668,12 @@ static void __exit grlib_apbuart_exit(void)
+ {
+ 	int i;
+ 
+-	for (i = 0; i < grlib_apbuart_port_nr; i++)
+-		uart_remove_one_port(&grlib_apbuart_driver,
+-				     &grlib_apbuart_ports[i]);
++	for (i = 0; i < UART_NR; i++)
++		if (test_bit(i, apbuart_ports_in_use))
++			uart_remove_one_port(&grlib_apbuart_driver,
++					     &grlib_apbuart_ports[i]);
++
++	bitmap_zero(apbuart_ports_in_use, UART_NR);
+ 
+ 	uart_unregister_driver(&grlib_apbuart_driver);
+ 	platform_driver_unregister(&grlib_apbuart_of_driver);
+-- 
+2.25.1
+

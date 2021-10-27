@@ -1,0 +1,387 @@
+diff --git a/drivers/net/can/grcan.c b/drivers/net/can/grcan.c
+index 39802f1..cd72562 100644
+--- a/drivers/net/can/grcan.c
++++ b/drivers/net/can/grcan.c
+@@ -32,6 +32,7 @@
+ #include <linux/spinlock.h>
+ #include <linux/of_platform.h>
+ #include <linux/of_irq.h>
++#include <linux/clk.h>
+ 
+ #include <linux/dma-mapping.h>
+ 
+@@ -45,10 +46,15 @@ struct grcan_registers {
+ 	u32 conf;	/* 0x00 */
+ 	u32 stat;	/* 0x04 */
+ 	u32 ctrl;	/* 0x08 */
+-	u32 __reserved1[GRCAN_RESERVE_SIZE(0x08, 0x18)];
++	u32 cap;	/* 0x0c */
++	u32 __reserved1[GRCAN_RESERVE_SIZE(0x0c, 0x18)];
+ 	u32 smask;	/* 0x18 - CanMASK */
+ 	u32 scode;	/* 0x1c - CanCODE */
+-	u32 __reserved2[GRCAN_RESERVE_SIZE(0x1c, 0x100)];
++	u32 __reserved2[GRCAN_RESERVE_SIZE(0x1c, 0x40)];
++	u32 nbtr;	/* 0x40 */
++	u32 fdbtr;	/* 0x44 */
++	u32 tdelay;	/* 0x48 */
++	u32 __reserved2_[GRCAN_RESERVE_SIZE(0x48, 0x100)];
+ 	u32 pimsr;	/* 0x100 */
+ 	u32 pimr;	/* 0x104 */
+ 	u32 pisr;	/* 0x108 */
+@@ -210,6 +216,61 @@ struct grcan_registers {
+ #error "Invalid default buffer size"
+ #endif
+ 
++#define GRCANFD_NOMCONF_SJW_MIN	1
++#define GRCANFD_NOMCONF_SJW_MAX	16
++#define GRCANFD_NOMCONF_PS1_MIN	2
++#define GRCANFD_NOMCONF_PS1_MAX	63
++#define GRCANFD_NOMCONF_PS2_MIN	2
++#define GRCANFD_NOMCONF_PS2_MAX	16
++#define GRCANFD_NOMCONF_SCALER_MIN	0
++#define GRCANFD_NOMCONF_SCALER_MAX	255
++#define GRCANFD_NOMCONF_SCALER_INC	1
++
++#define GRCANFD_NBTR_SCALER 0x00ff0000
++#define GRCANFD_NBTR_PS1 0x0000fc00
++#define GRCANFD_NBTR_PS2 0x000003e0
++#define GRCANFD_NBTR_SJW 0x0000001f
++#define GRCANFD_NBTR_TIMING						\
++	(GRCANFD_NBTR_SCALER | GRCANFD_NBTR_PS1 | GRCANFD_NBTR_PS2 |	\
++	 GRCANFD_NBTR_SJW)
++
++#define GRCANFD_NBTR_SCALER_BIT 16
++#define GRCANFD_NBTR_PS1_BIT 10
++#define GRCANFD_NBTR_PS2_BIT 5
++#define GRCANFD_NBTR_SJW_BIT 0
++
++#define GRCANFD_FDCONF_SJW_MIN	1
++#define GRCANFD_FDCONF_SJW_MAX	8
++#define GRCANFD_FDCONF_PS1_MIN	1
++#define GRCANFD_FDCONF_PS1_MAX	15
++#define GRCANFD_FDCONF_PS2_MIN	2
++#define GRCANFD_FDCONF_PS2_MAX	8
++#define GRCANFD_FDCONF_SCALER_MIN	0
++#define GRCANFD_FDCONF_SCALER_MAX	255
++#define GRCANFD_FDCONF_SCALER_INC	1
++
++#define GRCANFD_FDBTR_SCALER 0x00ff0000
++#define GRCANFD_FDBTR_PS1 0x00003c00
++#define GRCANFD_FDBTR_PS2 0x000001e0
++#define GRCANFD_FDBTR_SJW 0x0000000f
++#define GRCANFD_FDBTR_TIMING						\
++	(GRCANFD_FDBTR_SCALER | GRCANFD_FDBTR_PS1 | GRCANFD_FDBTR_PS2 |	\
++	 GRCANFD_FDBTR_SJW)
++
++#define GRCANFD_FDBTR_SCALER_BIT 16
++#define GRCANFD_FDBTR_PS1_BIT 10
++#define GRCANFD_FDBTR_PS2_BIT 5
++#define GRCANFD_FDBTR_SJW_BIT 0
++
++/* Hardware capabilities */
++struct grcan_hwcap {
++	bool fd;		/* CANFD capable if true */
++	const struct can_bittiming_const *bt_const;
++	int (*set_bittiming)(struct net_device *dev);
++};
++static const struct grcan_hwcap grcan_hwcap;
++static const struct of_device_id grcan_match[];
++
+ struct grcan_dma_buffer {
+ 	size_t size;
+ 	void *buf;
+@@ -248,6 +309,7 @@ struct grcan_device_config {
+ struct grcan_priv {
+ 	struct can_priv can;	/* must be the first member */
+ 	struct net_device *dev;
++	struct device *ofdev_dev;
+ 	struct napi_struct napi;
+ 
+ 	struct grcan_registers __iomem *regs;	/* ioremap'ed registers */
+@@ -302,6 +364,12 @@ struct grcan_priv {
+ 	 */
+ 	bool resetting;
+ 	bool closing;
++
++	/* CAN-FD capable, indicates GRCANFD IP.
++	 * The GRCANFD has different baud-rate registers and extended DMA
++	 * format to also describe FD-frames.
++	 */
++	const struct grcan_hwcap *hwcap;
+ };
+ 
+ /* Wait time for a short wait for ongoing to clear */
+@@ -400,6 +468,19 @@ static const struct can_bittiming_const grcan_bittiming_const = {
+ 	.brp_inc	= GRCAN_CONF_SCALER_INC,
+ };
+ 
++/* GRCANFD nominal boundaries for baud-rate parameters */
++static const struct can_bittiming_const grcanfd_bittiming_const = {
++	.name		= DRV_NAME,
++	.tseg1_min	= GRCANFD_NOMCONF_PS1_MIN,
++	.tseg1_max	= GRCANFD_NOMCONF_PS1_MAX,
++	.tseg2_min	= GRCANFD_NOMCONF_PS2_MIN,
++	.tseg2_max	= GRCANFD_NOMCONF_PS2_MAX,
++	.sjw_max	= GRCANFD_NOMCONF_SJW_MAX,
++	.brp_min	= GRCANFD_NOMCONF_SCALER_MIN + 1,
++	.brp_max	= GRCANFD_NOMCONF_SCALER_MAX + 1,
++	.brp_inc	= GRCANFD_NOMCONF_SCALER_INC,
++};
++
+ static int grcan_set_bittiming(struct net_device *dev)
+ {
+ 	struct grcan_priv *priv = netdev_priv(dev);
+@@ -443,6 +524,49 @@ static int grcan_set_bittiming(struct net_device *dev)
+ 	return 0;
+ }
+ 
++static int grcanfd_set_bittiming(struct net_device *dev)
++{
++	struct grcan_priv *priv = netdev_priv(dev);
++	struct grcan_registers __iomem *regs = priv->regs;
++	struct can_bittiming *bt = &priv->can.bittiming;
++	u32 timing = 0;
++	int sjw, ps1, ps2, scaler;
++
++	/* Should never happen - function will not be called when
++	 * device is up
++	 */
++	if (grcan_read_bits(&regs->ctrl, GRCAN_CTRL_ENABLE))
++		return -EBUSY;
++
++	sjw = bt->sjw;
++	ps1 = (bt->prop_seg + bt->phase_seg1); /* tseg1 */
++	ps2 = bt->phase_seg2;
++	scaler = (bt->brp - 1);
++	netdev_dbg(dev, "Request for SJW=%d, PS1=%d, PS2=%d, SCALER=%d",
++		   sjw, ps1, ps2, scaler);
++	if (!(sjw <= min(ps1, ps2))) {
++		netdev_err(dev, "SJW <= MIN(PS1,PS2) must hold:"
++			   "PS1=%d, PS2=%d, SJW=%d\n", ps1, ps2, sjw);
++		return -EINVAL;
++	}
++	if (!(ps2 >= sjw)) {
++		netdev_err(dev, "PS2 >= SJW must hold: PS2=%d, SJW=%d\n",
++			   ps2, sjw);
++		return -EINVAL;
++	}
++
++	timing |= (sjw << GRCANFD_NBTR_SJW_BIT) & GRCANFD_NBTR_SJW;
++	timing |= (ps1 << GRCANFD_NBTR_PS1_BIT) & GRCANFD_NBTR_PS1;
++	timing |= (ps2 << GRCANFD_NBTR_PS2_BIT) & GRCANFD_NBTR_PS2;
++	timing |= (scaler << GRCANFD_NBTR_SCALER_BIT) &
++	          GRCANFD_NBTR_SCALER;
++	netdev_info(dev, "setting timing=0x%x\n", timing);
++	grcan_write_bits(&regs->nbtr, timing, GRCANFD_NBTR_TIMING);
++
++	return 0;
++}
++
++
+ static int grcan_get_berr_counter(const struct net_device *dev,
+ 				  struct can_berr_counter *bec)
+ {
+@@ -463,9 +587,19 @@ static void grcan_reset(struct net_device *dev)
+ 	struct grcan_priv *priv = netdev_priv(dev);
+ 	struct grcan_registers __iomem *regs = priv->regs;
+ 	u32 config = grcan_read_reg(&regs->conf);
++	u32 nbtr, fdbtr;
++
++	if (priv->hwcap->fd) {
++		nbtr = grcan_read_reg(&regs->nbtr);
++		fdbtr = grcan_read_reg(&regs->fdbtr);
++	}
+ 
+ 	grcan_set_bits(&regs->ctrl, GRCAN_CTRL_RESET);
+ 	grcan_write_reg(&regs->conf, config);
++	if (priv->hwcap->fd) {
++		grcan_write_reg(&regs->nbtr, nbtr);
++		grcan_write_reg(&regs->fdbtr, fdbtr);
++	}
+ 
+ 	priv->eskbp = grcan_read_reg(&regs->txrd);
+ 	priv->can.state = CAN_STATE_STOPPED;
+@@ -924,7 +1058,7 @@ static void grcan_free_dma_buffers(struct net_device *dev)
+ 	struct grcan_priv *priv = netdev_priv(dev);
+ 	struct grcan_dma *dma = &priv->dma;
+ 
+-	dma_free_coherent(&dev->dev, dma->base_size, dma->base_buf,
++	dma_free_coherent(priv->ofdev_dev, dma->base_size, dma->base_buf,
+ 			  dma->base_handle);
+ 	memset(dma, 0, sizeof(*dma));
+ }
+@@ -949,7 +1083,14 @@ static int grcan_allocate_dma_buffers(struct net_device *dev,
+ 
+ 	/* Extra GRCAN_BUFFER_ALIGNMENT to allow for alignment */
+ 	dma->base_size = lsize + ssize + GRCAN_BUFFER_ALIGNMENT;
+-	dma->base_buf = dma_alloc_coherent(&dev->dev,
++
++	/* On 64-bit systems.. GRCAN and GRCANFD can only address 32-bit */
++	if (dma_set_mask_and_coherent(priv->ofdev_dev, DMA_BIT_MASK(32))) {
++		netdev_warn(dev, "No suitable DMA available\n");
++		return -ENOMEM;
++	}
++
++	dma->base_buf = dma_alloc_coherent(priv->ofdev_dev,
+ 					   dma->base_size,
+ 					   &dma->base_handle,
+ 					   GFP_KERNEL);
+@@ -1170,7 +1311,7 @@ static int grcan_receive(struct net_device *dev, int budget)
+ 	struct sk_buff *skb;
+ 	u32 wr, rd, startrd;
+ 	u32 *slot;
+-	u32 i, rtr, eff, j, shift;
++	u32 rtr, eff;
+ 	int work_done = 0;
+ 
+ 	rd = grcan_read_reg(&regs->rxrd);
+@@ -1206,10 +1347,10 @@ static int grcan_receive(struct net_device *dev, int budget)
+ 		if (rtr) {
+ 			cf->can_id |= CAN_RTR_FLAG;
+ 		} else {
+-			for (i = 0; i < cf->can_dlc; i++) {
+-				j = GRCAN_MSG_DATA_SLOT_INDEX(i);
+-				shift = GRCAN_MSG_DATA_SHIFT(i);
+-				cf->data[i] = (u8)(slot[j] >> shift);
++			if (cf->can_dlc > 0) {
++				*(u32 *)(cf->data) = slot[2];
++				if (cf->can_dlc > 4)
++					*(u32 *)(cf->data + 4) = slot[3];
+ 			}
+ 		}
+ 
+@@ -1355,8 +1496,7 @@ static netdev_tx_t grcan_start_xmit(struct sk_buff *skb,
+ 	u32 id, txwr, txrd, space, txctrl;
+ 	int slotindex;
+ 	u32 *slot;
+-	u32 i, rtr, eff, dlc, tmp, err;
+-	int j, shift;
++	u32 rtr, eff, dlc, tmp, err;
+ 	unsigned long flags;
+ 	u32 oneshotmode = priv->can.ctrlmode & CAN_CTRLMODE_ONE_SHOT;
+ 
+@@ -1409,10 +1549,10 @@ static netdev_tx_t grcan_start_xmit(struct sk_buff *skb,
+ 	slot[1] = ((dlc << GRCAN_MSG_DLC_BIT) & GRCAN_MSG_DLC);
+ 	slot[2] = 0;
+ 	slot[3] = 0;
+-	for (i = 0; i < dlc; i++) {
+-		j = GRCAN_MSG_DATA_SLOT_INDEX(i);
+-		shift = GRCAN_MSG_DATA_SHIFT(i);
+-		slot[j] |= cf->data[i] << shift;
++	if (dlc > 0) {
++		slot[2] = *(u32 *)(cf->data); /* data aligned 64-bit */
++		if (dlc > 4)
++			slot[3] = *(u32 *)(cf->data + 4);
+ 	}
+ 
+ 	/* Checking that channel has not been disabled. These cases
+@@ -1580,7 +1720,8 @@ static const struct net_device_ops grcan_netdev_ops = {
+ 
+ static int grcan_setup_netdev(struct platform_device *ofdev,
+ 			      void __iomem *base,
+-			      int irq, u32 ambafreq, bool txbug)
++			      int irq, u32 ambafreq, bool txbug,
++			      const struct grcan_hwcap *hwcap)
+ {
+ 	struct net_device *dev;
+ 	struct grcan_priv *priv;
+@@ -1600,15 +1741,17 @@ static int grcan_setup_netdev(struct platform_device *ofdev,
+ 	memcpy(&priv->config, &grcan_module_config,
+ 	       sizeof(struct grcan_device_config));
+ 	priv->dev = dev;
++	priv->ofdev_dev = &ofdev->dev;
+ 	priv->regs = base;
+-	priv->can.bittiming_const = &grcan_bittiming_const;
+-	priv->can.do_set_bittiming = grcan_set_bittiming;
++	priv->can.bittiming_const = hwcap->bt_const;
++	priv->can.do_set_bittiming = hwcap->set_bittiming;
+ 	priv->can.do_set_mode = grcan_set_mode;
+ 	priv->can.do_get_berr_counter = grcan_get_berr_counter;
+ 	priv->can.clock.freq = ambafreq;
+ 	priv->can.ctrlmode_supported =
+ 		CAN_CTRLMODE_LISTENONLY | CAN_CTRLMODE_ONE_SHOT;
+ 	priv->need_txbug_workaround = txbug;
++	priv->hwcap = hwcap;
+ 
+ 	/* Discover if triple sampling is supported by hardware */
+ 	regs = priv->regs;
+@@ -1656,19 +1799,33 @@ static int grcan_probe(struct platform_device *ofdev)
+ 	int irq, err;
+ 	void __iomem *base;
+ 	bool txbug = true;
++	struct clk *clk;
++	const struct of_device_id *of_id;
++	const struct grcan_hwcap *hwcap = &grcan_hwcap;
++
++	of_id = of_match_device(grcan_match, &ofdev->dev);
++	if (of_id && of_id->data)
++		hwcap = (struct grcan_hwcap *)of_id->data;
+ 
+ 	/* Compare GRLIB version number with the first that does not
+ 	 * have the tx bug (see start_xmit)
++	 * GRCANFD IP is not affected either.
+ 	 */
+ 	err = of_property_read_u32(np, "systemid", &sysid);
+-	if (!err && ((sysid & GRLIB_VERSION_MASK)
+-		     >= GRCAN_TXBUG_SAFE_GRLIB_VERSION))
++	if (hwcap->fd || (!err && ((sysid & GRLIB_VERSION_MASK)
++				>= GRCAN_TXBUG_SAFE_GRLIB_VERSION)))
+ 		txbug = false;
+ 
+ 	err = of_property_read_u32(np, "freq", &ambafreq);
+ 	if (err) {
+-		dev_err(&ofdev->dev, "unable to fetch \"freq\" property\n");
+-		goto exit_error;
++		clk = devm_clk_get(&ofdev->dev, NULL);
++		if (IS_ERR(clk)) {
++			dev_err(&ofdev->dev,
++				"unable to fetch \"freq\" property\n");
++			goto exit_error;
++		} else {
++		        ambafreq = clk_get_rate(clk);
++		}
+ 	}
+ 
+ 	base = devm_platform_ioremap_resource(ofdev, 0);
+@@ -1686,7 +1843,7 @@ static int grcan_probe(struct platform_device *ofdev)
+ 
+ 	grcan_sanitize_module_config(ofdev);
+ 
+-	err = grcan_setup_netdev(ofdev, base, irq, ambafreq, txbug);
++	err = grcan_setup_netdev(ofdev, base, irq, ambafreq, txbug, hwcap);
+ 	if (err)
+ 		goto exit_dispose_irq;
+ 
+@@ -1715,11 +1872,28 @@ static int grcan_remove(struct platform_device *ofdev)
+ 	return 0;
+ }
+ 
++static const struct grcan_hwcap grcan_hwcap = {
++	.fd = false,
++	.bt_const = &grcan_bittiming_const,
++	.set_bittiming = grcan_set_bittiming,
++};
++
++static const struct grcan_hwcap grcanfd_hwcap = {
++	.fd = true,
++	.bt_const = &grcanfd_bittiming_const,
++	.set_bittiming = grcanfd_set_bittiming,
++};
++
+ static const struct of_device_id grcan_match[] = {
+-	{.name = "GAISLER_GRCAN"},
+-	{.name = "01_03d"},
+-	{.name = "GAISLER_GRHCAN"},
+-	{.name = "01_034"},
++	{.name = "GAISLER_GRCAN", .data = &grcan_hwcap},
++	{.name = "01_03d", .data = &grcan_hwcap},
++	{.name = "GAISLER_GRHCAN", .data = &grcan_hwcap},
++	{.name = "01_034", .data = &grcan_hwcap},
++	{.compatible = "gaisler,grcan", .data = &grcan_hwcap},
++	/* GRCANFD */
++	{.compatible = "gaisler,grcanfd", .data = &grcanfd_hwcap},
++	{.name = "GAISLER_GRCANFD", .data = &grcanfd_hwcap},
++	{.name = "01_0B5", .data = &grcanfd_hwcap},
+ 	{},
+ };
+ 

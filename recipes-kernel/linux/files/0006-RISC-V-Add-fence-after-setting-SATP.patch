@@ -1,0 +1,25 @@
+From 4765ef11db5c678bd04a67462b49466529554d5b Mon Sep 17 00:00:00 2001
+From: Daniel Cederman <cederman@gaisler.com>
+Date: Tue, 4 May 2021 16:17:50 +0200
+Subject: [PATCH 6/6] RISC-V: Add fence after setting SATP
+
+Signed-off-by: Daniel Cederman <cederman@gaisler.com>
+---
+ arch/riscv/kernel/head.S | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/riscv/kernel/head.S b/arch/riscv/kernel/head.S
+index f5a9bad86e58..e6d4ec8de9ed 100644
+--- a/arch/riscv/kernel/head.S
++++ b/arch/riscv/kernel/head.S
+@@ -95,6 +95,7 @@ relocate:
+ 	or a0, a0, a1
+ 	sfence.vma
+ 	csrw CSR_SATP, a0
++	sfence.vma
+ .align 2
+ 1:
+ 	/* Set trap vector to spin forever to help debug */
+-- 
+2.25.1
+

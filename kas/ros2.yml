@@ -8,4 +8,7 @@
 header:
   version: 10
 
-target: isar-image-ros2
+local_conf_header:
+  ros2_binaries: |
+    IMAGE_INSTALL += "ros-foxy-base-bin ros-foxy-demo-bin"
+    ROOTFS_EXTRA = "1024"
