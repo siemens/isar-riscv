@@ -6,7 +6,7 @@ This Isar build configuration supports a setup where firmware image and device t
 
 ### Building Firmware Image and File System Archive
 
-The following command starts the build for NOELV:
+The following command starts the build for NOELV (and requires docker to be installed):
 
     ./kas-container build kas-noelv.yml
 
