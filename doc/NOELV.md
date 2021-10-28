@@ -71,7 +71,7 @@ ssh riscv@$NOELV_IP
 noelv$ sudo -s
 
 # optional: set proxy server
-noelv$ export http_proxy="http://localhost:12345"
+noelv$ export http_proxy="http://127.0.0.1:12345"
 noelv$ export https_proxy=$http_proxy
 
 # set system date (deviation from today's date might lead to issues such as certificate-related errors)
