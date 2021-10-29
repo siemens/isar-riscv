@@ -2,7 +2,7 @@
 
 This [Isar](https://github.com/ilbers/isar) layer provides recipes and configurations to add support for RISC-V architecture.
 
-Dedicated files in [doc](doc) folder contain information how to [build for and run on NOELV platform](doc/NOELV.md), how to [include ROS2](doc/ROS2.md) and how to [create an SDK](doc/SDK.md)
+Dedicated files in [doc](doc) folder contain information how to [build for and run on NOEL-V platform](doc/NOELV.md), how to [include ROS2](doc/ROS2.md) and how to [create an SDK](doc/SDK.md)
 
 ## Building for QEMU
 

@@ -1,4 +1,4 @@
-# NOELV
+# NOEL-V
 
 ## Required Build Artifacts
 
@@ -6,7 +6,7 @@ This Isar build configuration supports a setup where firmware image and device t
 
 ### Building Firmware Image and File System Archive
 
-The following command starts the build for NOELV (and requires docker to be installed):
+The following command starts the build for NOEL-V (and requires docker to be installed):
 
     ./kas-container build kas-noelv.yml
 
@@ -18,7 +18,7 @@ Relevant build artifacts are
   - the firmware image to be loaded via debugger: ```build/tmp/deploy/images/noelv/fw_payload.elf```
   - the file system tar archive to be extracted on the NFS server: ```build/tmp/deploy/images/noelv/isar-image-base-debian-sid-ports-noelv.tar.gz```
 
-### Configuring IP Address of NOELV System and NFS Server
+### Configuring IP Address of NOEL-V System and NFS Server
 
 The kernel command line included in the device tree configuration needs to be adapted to make the kernel boot from NFS.
 
@@ -53,11 +53,11 @@ The resulting file ```noel-xcku-ex4.dtb``` can be loaded via debugger.
 
 Two users are preconfigured: "root" and "riscv". For both, the password equals the user name.
 
-When the system is running, APT can be used to install Debian packages. APT requires network connection to snapshot.debian.org to read the package list and install packages. If a DHCP server is used to configure networking for the NOELV system, internet access might already be available.
+When the system is running, APT can be used to install Debian packages. APT requires network connection to snapshot.debian.org to read the package list and install packages. If a DHCP server is used to configure networking for the NOEL-V system, internet access might already be available.
 
 ### Optional: Forwarding Internet Traffic to Proxy Server
 
-If using an HTTP proxy server is mandatory to access the internet, forwarding a dedicated port from the NOELV system to the proxy server is typically a viable solution. This assumes that the proxy server is accessible from the machine used to connect to the NOELV system:
+If using an HTTP proxy server is mandatory to access the internet, forwarding a dedicated port from the NOEL-V system to the proxy server is typically a viable solution. This assumes that the proxy server is accessible from the machine used to connect to the NOEL-V system:
 ```
 # set proxy
 ssh riscv@$NOELV_IP -R 12345:$PROXY_NAME:$PROXY_PORT
