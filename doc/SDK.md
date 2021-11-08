@@ -16,7 +16,7 @@ Relocate the toolchain:
 
 ```
 cd $MY_SDK_PATH/sdk-debian-sid-ports-riscv64
-./relocate.sh
+./relocate-sdk.sh
 ``` 
 
 Test the toolchain:
