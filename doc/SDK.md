@@ -19,6 +19,16 @@ cd $MY_SDK_PATH/sdk-debian-sid-ports-riscv64
 ./relocate-sdk.sh
 ``` 
 
-Test the toolchain:
+Optional: test the toolchain by compiling e.g. a hello world example:
 
-    $MY_SDK_PATH/sdk-debian-sid-ports-riscv64/usr/bin/riscv64-linux-gnu-gcc mytestfile.c
+    $MY_SDK_PATH/sdk-debian-sid-ports-riscv64/usr/bin/riscv64-linux-gnu-gcc -o hello hello.c
+
+Optional: run the hello world executable within QEMU (see [README](../README.md) how to build an image for QEMU and start it):
+
+```
+# copy executable from host system
+qemu$ scp $USER@10.0.2.2:path/to/hello .
+# run it
+qemu$ ./hello
+```
+
