@@ -15,7 +15,7 @@ ROS2 does not come with RISC-V debian packages. Therefore, it is necessary to re
         -initrd build/tmp/deploy/images/qemuriscv64/isar-image-${IMAGE_NAME}-debian-sid-ports-qemuriscv64-initrd.img \
         -append "console=ttyS0 root=/dev/vda rw" -nographic
 
-In QEMU build ros-foxy-ros-base, build and run the demo (requires more than a tag):
+In QEMU, log in as root, build ros-foxy-ros-base (might need several hours), then build the demo and run it:
 ```
 cd scripts
 ./ros_base_build.sh
