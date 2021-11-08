@@ -20,6 +20,7 @@ Start the generated image in QEMU using this command:
 
     export IMAGE_NAME=base
     qemu-system-riscv64 -m 1G -M virt -cpu rv64 \
+        -netdev user,id=vnet,hostfwd=:127.0.0.1:0-:22 -device virtio-net-pci,netdev=vnet \
         -drive file=build/tmp/deploy/images/qemuriscv64/isar-image-${IMAGE_NAME}-debian-sid-ports-qemuriscv64.ext4.img,if=none,format=raw,id=hd0 \
         -device virtio-blk-device,drive=hd0 \
         -device loader,file=build/tmp/deploy/images/qemuriscv64/fw_jump.elf,addr=0x80200000 \
