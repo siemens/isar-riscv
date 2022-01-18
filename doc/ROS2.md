@@ -7,7 +7,7 @@ ROS2 does not come with RISC-V debian packages. Therefore, it is necessary to re
     ./kas-container build kas-qemu.yml:kas/ros2-devel.yml
     export IMAGE_NAME=ros2-devel
     qemu-system-riscv64 -m 8G -M virt -cpu rv64 -smp 8 \
-        -netdev user,id=vnet,hostfwd=:127.0.0.1:0-:22 -device virtio-net-pci,netdev=vnet \
+        -netdev user,id=vnet,hostfwd=:127.0.0.1:12345-:22 -device virtio-net-pci,netdev=vnet \
         -rtc base=localtime,clock=host \
         -drive file=build/tmp/deploy/images/qemuriscv64/isar-image-${IMAGE_NAME}-debian-sid-ports-qemuriscv64.ext4.img,if=none,format=raw,id=hd0 \
         -device virtio-blk-device,drive=hd0 -device loader,file=build/tmp/deploy/images/qemuriscv64/fw_jump.elf,addr=0x80200000 \
