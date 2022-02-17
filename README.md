@@ -14,6 +14,10 @@ Run the following command to start the build:
 
     ./kas-container build kas-qemu.yml
 
+The QEMU build by default uses the Linux kernel from the Debian repositories. If you need to use the same kernel as in the NOEL-V build, please include a second .yml file as shown below.
+
+    ./kas-container build kas-qemu.yml:kas/force-noelv-kernel.yml
+
 ## Running in QEMU
 
 Start the generated image in QEMU using this command:
