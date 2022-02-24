@@ -1,0 +1,19 @@
+diff --git a/drivers/Kconfig b/drivers/Kconfig
+--- a/drivers/Kconfig
++++ b/drivers/Kconfig
+@@ -235,4 +235,7 @@
+ source "drivers/counter/Kconfig"
+ 
+ source "drivers/most/Kconfig"
++
++source "drivers/grlib/Kconfig"
++
+ endmenu
+--- a/drivers/Makefile
++++ b/drivers/Makefile
+@@ -189,3 +189,5 @@
+ obj-$(CONFIG_INTERCONNECT)	+= interconnect/
+ obj-$(CONFIG_COUNTER)		+= counter/
+ obj-$(CONFIG_MOST)		+= most/
++
++obj-$(CONFIG_GRLIB_DRVPKG)	+= grlib/
