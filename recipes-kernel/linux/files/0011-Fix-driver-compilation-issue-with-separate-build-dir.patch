@@ -1,0 +1,39 @@
+From 06b6c199bff2763451d350796ac5a694b4d35229 Mon Sep 17 00:00:00 2001
+From: Steffen Gerhold <steffen.gerhold@siemens.com>
+Date: Wed, 23 Feb 2022 08:41:13 +0100
+Subject: [PATCH] Fix driver compilation issue with separate build directory
+
+Signed-off-by: Steffen Gerhold <steffen.gerhold@siemens.com>
+---
+ drivers/grlib/misc/Kbuild | 2 +-
+ drivers/grlib/spw/Kbuild  | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/grlib/misc/Kbuild b/drivers/grlib/misc/Kbuild
+index 642d4bd06..0af31a4e8 100644
+--- a/drivers/grlib/misc/Kbuild
++++ b/drivers/grlib/misc/Kbuild
+@@ -2,6 +2,6 @@
+ # Kbuild for the kernel MAPLIB device driver.
+ #
+ 
+-EXTRA_CFLAGS   += -I$(ROOT_PATH)drivers/grlib/include
++EXTRA_CFLAGS   += -I$(srctree)/$(src)/../include
+ 
+ obj-$(CONFIG_GRLIB_MAPLIB) += maplib.o
+diff --git a/drivers/grlib/spw/Kbuild b/drivers/grlib/spw/Kbuild
+index 43cce955f..b6124f31c 100644
+--- a/drivers/grlib/spw/Kbuild
++++ b/drivers/grlib/spw/Kbuild
+@@ -2,7 +2,7 @@
+ # Kbuild for the kernel GRSPW SpaceWire device drivers.
+ #
+ 
+-EXTRA_CFLAGS   += -I$(ROOT_PATH)drivers/grlib/include
++EXTRA_CFLAGS   += -I$(srctree)/$(src)/../include
+ 
+ obj-$(CONFIG_GRLIB_GRSPW) += grspw.o
+ obj-$(CONFIG_GRLIB_GRSPWU) += grspw_user.o
+-- 
+2.30.2
+
