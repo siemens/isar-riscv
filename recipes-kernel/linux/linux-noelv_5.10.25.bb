@@ -20,8 +20,9 @@ SRC_URI += " \
     file://0005-greth-Do-not-reset-GRETH-when-EDCL-is-active.patch \
     file://0006-RISC-V-Add-fence-after-setting-SATP.patch \
     file://0007-net_can-grcanfd-support-20210610.patch \
-    file://0007-serial-apbuart-Make-it-compatible-with-8250.patch \
     file://0008-net-greth-temporary-fix-for-little-endian-swapped-de.patch \
+    file://0009-grlib-drvpkg-20220206.patch \
+    file://0010-add_grlib_tree_5.10.patch \
     file://riscv_defconfig"
 
 SRC_URI[sha256sum] = "930ae76b9a3b64b98802849aca332d17a706f20595de21e1ae729b55ee461add"
